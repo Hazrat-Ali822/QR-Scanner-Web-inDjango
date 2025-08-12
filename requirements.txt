@@ -1,0 +1,7 @@
+Django>=4.2
+djangorestframework
+pymongo
+requests
+python-dotenv
+html5-qrcode
+

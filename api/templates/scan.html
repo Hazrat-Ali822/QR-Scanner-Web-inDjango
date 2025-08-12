@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR & Barcode Scanner</title>
+</head>
+<body>
+    <h2>📷 Webcam Scan</h2>
+    <video id="video" width="300" height="200" autoplay></video>
+    <canvas id="canvas" hidden></canvas>
+    <p id="camera-result">Result will appear here...</p>
+
+    <h2>📁 Upload QR/Barcode</h2>
+    <input type="file" id="fileInput">
+    <p id="upload-result">Result will appear here...</p>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <script>
+        // Webcam QR Scan
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cameraResult = document.getElementById('camera-result');
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => { video.srcObject = stream; });
+
+        function scanQRCode() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) {
+                    cameraResult.innerHTML = `<b>Scanned:</b> <a href="${code.data}" target="_blank">${code.data}</a>`;
+                }
+            }
+            requestAnimationFrame(scanQRCode);
+        }
+        requestAnimationFrame(scanQRCode);
+
+        // File Upload QR/Barcode
+        document.getElementById("fileInput").addEventListener("change", function() {
+            const formData = new FormData();
+            formData.append("file", this.files[0]);
+
+            fetch("/upload_qr/", {
+                method: "POST",
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.results && data.results.length > 0) {
+                    let display = data.results.map(r => `<a href="${r}" target="_blank">${r}</a>`).join("<br>");
+                    document.getElementById("upload-result").innerHTML = display;
+                } else {
+                    document.getElementById("upload-result").innerText = "No QR or barcode found.";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
